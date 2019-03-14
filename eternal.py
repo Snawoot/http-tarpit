@@ -19,7 +19,7 @@ class EternalServer:
         except:
             pass
         else:
-            await self.server.shutdown(SHUTDOWN_TIMEOUT)
+            await self.server.shutdown(self.SHUTDOWN_TIMEOUT)
             await self.site.stop()
             await self.runner.cleanup()
 
