@@ -6,8 +6,6 @@ import time
 import datetime
 
 
-
-
 class EternalServer:
     SHUTDOWN_TIMEOUT=5
 
