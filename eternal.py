@@ -57,14 +57,15 @@ class EternalServer:
     SHUTDOWN_TIMEOUT = 5
 
     def __init__(self, *, address=None, port=8080, ssl_context=None,
-                 mode=OperationMode.clock):
+                 mode=OperationMode.clock, loop=None):
+        self._loop = loop if loop is not None else asyncio.get_event_loop()
         self._logger = logging.getLogger(self.__class__.__name__)
         self._address = address
         self._port = port
         self._ssl_context = ssl_context
         self._mode = mode
-        self._int_fut = asyncio.Future()
-        self._shutdown = asyncio.ensure_future(self._int_fut)
+        self._int_fut = self._loop.create_future()
+        self._shutdown = asyncio.ensure_future(self._int_fut, loop=self._loop)
 
     async def stop(self):
         try:
@@ -214,7 +215,8 @@ def main():
     server = EternalServer(address=args.bind_address,
                            port=args.bind_port,
                            ssl_context=context,
-                           mode=args.mode)
+                           mode=args.mode,
+                           loop=loop)
     loop.run_until_complete(server.setup())
     logger.info("Server startup completed.")
 
