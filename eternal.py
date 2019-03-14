@@ -14,7 +14,7 @@ def enable_uvloop():
     try:
         import uvloop
         asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
-    except:
+    except ImportError:
         return False
     else:
         return True
@@ -48,7 +48,7 @@ class EternalServer:
     async def stop(self):
         try:
             self._int_fut.set_result(None)
-        except:
+        except asyncio.InvalidStateError:
             pass
         else:
             await self._server.shutdown()
