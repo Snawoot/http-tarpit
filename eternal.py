@@ -6,7 +6,11 @@ import time
 import datetime
 
 
+
+
 class EternalServer:
+    SHUTDOWN_TIMEOUT=5
+
     def __init__(self):
         self._int_fut = asyncio.Future()
         self._shutdown = asyncio.ensure_future(self._int_fut)
@@ -17,7 +21,7 @@ class EternalServer:
         except:
             pass
         else:
-            await self.server.shutdown()
+            await self.server.shutdown(SHUTDOWN_TIMEOUT)
             await self.site.stop()
             await self.runner.cleanup()
 
@@ -32,9 +36,9 @@ class EternalServer:
             return task.result()
 
     async def handler(self, request):
-        resp = web.StreamResponse()
+        resp = web.StreamResponse(headers={'Content-Type': 'text/plain'})
         resp.enable_chunked_encoding()
-        await self._guarded_run(resp.prepare(request))
+        await resp.prepare(request)
         while not self._shutdown.done():
             text = datetime.datetime.utcnow().strftime("%m %b %H:%M:%S\n").encode('ascii')
             await self._guarded_run(resp.write(text))
