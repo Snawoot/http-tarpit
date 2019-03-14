@@ -7,6 +7,7 @@ import datetime
 import logging
 import ssl
 import signal
+import os
 from functools import partial
 
 from aiohttp import web
@@ -51,6 +52,7 @@ class LogLevel(enum.IntEnum):
 
 
 ZEROES=bytearray(131072)
+NEWLINES=bytearray(0xA for _ in range(131072))
 
 
 class EternalServer:
@@ -113,10 +115,20 @@ class EternalServer:
             await self._guarded_run(resp.write(ZEROES))
         return resp
 
+    async def handler_newline(self, request):
+        resp = web.StreamResponse(
+            headers={'Content-Type': 'text/plain'})
+        resp.enable_chunked_encoding()
+        await resp.prepare(request)
+        while not self._shutdown.done():
+            await self._guarded_run(resp.write(ZEROES))
+        return resp
+
     async def setup(self):
         handler = {
             OperationMode.clock: self.handler_clock,
             OperationMode.null: self.handler_null,
+            OperationMode.newline: self.handler_newline,
         }[self._mode]
         self._server = web.Server(handler)
         self._runner = web.ServerRunner(self._server)
@@ -192,7 +204,8 @@ def exit_handler(fut, signum, frame):
         fut.set_result(None)
     except asyncio.InvalidStateError:
         logger = logging.getLogger('MAIN')
-        logger.warn("Already exiting!")
+        logger.warn("Got second exit signal! Terminating hard.")
+        os._exit(1)
 
 
 def main():
