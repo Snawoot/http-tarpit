@@ -6,6 +6,8 @@ import asyncio
 import datetime
 import logging
 import ssl
+import signal
+from functools import partial
 
 from aiohttp import web
 
@@ -184,6 +186,14 @@ def parse_args():
     return parser.parse_args()
 
 
+def exit_handler(fut, signum, frame):
+    try:
+        fut.set_result(None)
+    except asyncio.InvalidStateError:
+        logger = logging.getLogger('MAIN')
+        logger.warn("Already exiting!")
+
+
 def main():
     args = parse_args()
     logger = setup_logger('MAIN', args.verbosity)
@@ -208,11 +218,14 @@ def main():
     loop.run_until_complete(server.setup())
     logger.info("Server startup completed.")
 
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt:
-        logger.info("Got interrupt signal. Shutting down server...")
-        loop.run_until_complete(server.stop())
+
+    exit_future = loop.create_future()
+    sig_handler = partial(exit_handler, exit_future)
+    signal.signal(signal.SIGTERM, sig_handler)
+    signal.signal(signal.SIGINT, sig_handler)
+    loop.run_until_complete(exit_future)
+    logger.info("Got interrupt signal. Shutting down server...")
+    loop.run_until_complete(server.stop())
     loop.close()
     logger.info("Server stopped.")
 
