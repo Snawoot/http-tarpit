@@ -51,8 +51,9 @@ class LogLevel(enum.IntEnum):
         return e in self.__members__
 
 
-ZEROES=bytearray(131072)
-NEWLINES=bytearray(0xA for _ in range(131072))
+BUF_SIZE=131072
+ZEROES=bytearray(BUF_SIZE)
+NEWLINES=bytearray(0xA for _ in range(BUF_SIZE))
 
 
 class EternalServer:
@@ -124,11 +125,21 @@ class EternalServer:
             await self._guarded_run(resp.write(ZEROES))
         return resp
 
+    async def handler_urandom(self, request):
+        resp = web.StreamResponse(
+            headers={'Content-Type': 'application/octet-stream'})
+        resp.enable_chunked_encoding()
+        await resp.prepare(request)
+        while not self._shutdown.done():
+            await self._guarded_run(resp.write(os.urandom(BUF_SIZE)))
+        return resp
+
     async def setup(self):
         handler = {
             OperationMode.clock: self.handler_clock,
             OperationMode.null: self.handler_null,
             OperationMode.newline: self.handler_newline,
+            OperationMode.urandom: self.handler_urandom,
         }[self._mode]
         self._server = web.Server(handler)
         self._runner = web.ServerRunner(self._server)
