@@ -20,6 +20,19 @@ def enable_uvloop():
         return True
 
 
+class OperationMode(enum.Enum):
+    clock = enum.auto()
+    newline = enum.auto()
+    urandom = enum.auto()
+    null = enum.auto()
+
+    def __str__(self):
+        return self.name
+
+    def __contains__(self, e):
+        return e in self.__members__
+
+
 class LogLevel(enum.IntEnum):
     debug = logging.DEBUG
     info = logging.INFO
@@ -35,13 +48,19 @@ class LogLevel(enum.IntEnum):
         return e in self.__members__
 
 
+ZEROES=bytearray(131072)
+
+
 class EternalServer:
     SHUTDOWN_TIMEOUT = 5
 
-    def __init__(self, *, address=None, port=8080, ssl_context=None):
+    def __init__(self, *, address=None, port=8080, ssl_context=None,
+                 mode=OperationMode.clock):
+        self._logger = logging.getLogger(self.__class__.__name__)
         self._address = address
         self._port = port
         self._ssl_context = ssl_context
+        self._mode = mode
         self._int_fut = asyncio.Future()
         self._shutdown = asyncio.ensure_future(self._int_fut)
 
@@ -65,7 +84,7 @@ class EternalServer:
         else:
             return task.result()
 
-    async def handler(self, request):
+    async def handler_clock(self, request):
         resp = web.StreamResponse(headers={'Content-Type': 'text/plain'})
         resp.enable_chunked_encoding()
         await resp.prepare(request)
@@ -78,15 +97,28 @@ class EternalServer:
             await self._guarded_run(asyncio.sleep(sleep_time))
         return resp
 
+    async def handler_null(self, request):
+        resp = web.StreamResponse(
+            headers={'Content-Type': 'application/octet-stream'})
+        resp.enable_chunked_encoding()
+        await resp.prepare(request)
+        while not self._shutdown.done():
+            await self._guarded_run(resp.write(ZEROES))
+        return resp
 
     async def setup(self):
-        self._server = web.Server(self.handler)
+        handler = {
+            OperationMode.clock: self.handler_clock,
+            OperationMode.null: self.handler_null,
+        }[self._mode]
+        self._server = web.Server(handler)
         self._runner = web.ServerRunner(self._server)
         await self._runner.setup()
         self._site = web.TCPSite(self._runner, self._address, self._port,
                                  ssl_context=self._ssl_context,
                                  shutdown_timeout=self.SHUTDOWN_TIMEOUT)
         await self._site.start()
+        self._logger.info("Server ready.")
 
 
 
@@ -125,6 +157,11 @@ def parse_args():
                         type=LogLevel.__getitem__,
                         choices=list(LogLevel),
                         default=LogLevel.info)
+    parser.add_argument("-m", "--mode",
+                        help="operation mode",
+                        type=OperationMode.__getitem__,
+                        choices=list(OperationMode),
+                        default=OperationMode.clock)
 
     listen_group = parser.add_argument_group('listen options')
     listen_group.add_argument("-a", "--bind-address",
@@ -146,10 +183,11 @@ def parse_args():
 def main():
     args = parse_args()
     logger = setup_logger('MAIN', args.verbosity)
-    setup_logger(EternalServer.__class__.__name__, args.verbosity)
+    setup_logger(EternalServer.__name__, args.verbosity)
 
     if not args.disable_uvloop:
-        enable_uvloop()
+        res = enable_uvloop()
+        logger.info("uvloop" + ("" if res else " NOT") + " activated.")
 
     if args.cert:
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
@@ -161,7 +199,8 @@ def main():
     loop = asyncio.get_event_loop()
     server = EternalServer(address=args.bind_address,
                            port=args.bind_port,
-                           ssl_context=context)
+                           ssl_context=context,
+                           mode=args.mode)
     loop.run_until_complete(server.setup())
     logger.info("Server startup completed.")
 
