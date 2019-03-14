@@ -3,11 +3,11 @@
 import enum
 import argparse
 import asyncio
-from aiohttp import web
-import time
 import datetime
 import logging
 import ssl
+
+from aiohttp import web
 
 
 def enable_uvloop():
@@ -36,12 +36,12 @@ class LogLevel(enum.IntEnum):
 
 
 class EternalServer:
-    SHUTDOWN_TIMEOUT=5
+    SHUTDOWN_TIMEOUT = 5
 
-    def __init__(self, *, address=None, port=8080, ssl=None):
+    def __init__(self, *, address=None, port=8080, ssl_context=None):
         self._address = address
         self._port = port
-        self._ssl = ssl
+        self._ssl_context = ssl_context
         self._int_fut = asyncio.Future()
         self._shutdown = asyncio.ensure_future(self._int_fut)
 
@@ -51,14 +51,14 @@ class EternalServer:
         except:
             pass
         else:
-            await self.server.shutdown()
-            await self.site.stop()
-            await self.runner.cleanup()
+            await self._server.shutdown()
+            await self._site.stop()
+            await self._runner.cleanup()
 
     async def _guarded_run(self, awaitable):
         task = asyncio.ensure_future(awaitable)
-        done, pending = await asyncio.wait((self._shutdown, task),
-                                           return_when=asyncio.FIRST_COMPLETED)
+        _, pending = await asyncio.wait((self._shutdown, task),
+                                        return_when=asyncio.FIRST_COMPLETED)
         if task in pending:
             task.cancel()
             return None
@@ -77,13 +77,13 @@ class EternalServer:
 
 
     async def setup(self):
-        self.server = web.Server(self.handler)
-        self.runner = web.ServerRunner(self.server)
-        await self.runner.setup()
-        self.site = web.TCPSite(self.runner, self._address, self._port,
-                                ssl_context=self._ssl,
-                                shutdown_timeout=self.SHUTDOWN_TIMEOUT)
-        await self.site.start()
+        self._server = web.Server(self.handler)
+        self._runner = web.ServerRunner(self._server)
+        await self._runner.setup()
+        self._site = web.TCPSite(self._runner, self._address, self._port,
+                                 ssl_context=self._ssl_context,
+                                 shutdown_timeout=self.SHUTDOWN_TIMEOUT)
+        await self._site.start()
 
 
 
@@ -104,7 +104,7 @@ def parse_args():
 
     def check_port(value):
         ivalue = int(value)
-        if not (0 < ivalue < 65536):
+        if not 0 < ivalue < 65536:
             raise argparse.ArgumentTypeError(
                 "%s is not a valid port number" % value)
         return ivalue
@@ -152,13 +152,13 @@ def main():
         context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
         context.load_cert_chain(certfile=args.cert, keyfile=args.key)
     else:
-        context=None
+        context = None
 
     logger.debug("Starting server...")
     loop = asyncio.get_event_loop()
     server = EternalServer(address=args.bind_address,
                            port=args.bind_port,
-                           ssl=context)
+                           ssl_context=context)
     loop.run_until_complete(server.setup())
     logger.info("Server startup completed.")
 
