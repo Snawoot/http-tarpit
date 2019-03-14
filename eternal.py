@@ -76,8 +76,12 @@ class EternalServer:
 
     async def _guarded_run(self, awaitable):
         task = asyncio.ensure_future(awaitable)
-        _, pending = await asyncio.wait((self._shutdown, task),
-                                        return_when=asyncio.FIRST_COMPLETED)
+        try:
+            _, pending = await asyncio.wait((self._shutdown, task),
+                                            return_when=asyncio.FIRST_COMPLETED)
+        except asyncio.CancelledError:
+            task.cancel()
+            raise
         if task in pending:
             task.cancel()
             return None
