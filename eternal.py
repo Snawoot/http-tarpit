@@ -70,9 +70,12 @@ class EternalServer:
         resp.enable_chunked_encoding()
         await resp.prepare(request)
         while not self._shutdown.done():
-            text = datetime.datetime.utcnow().strftime("%m %b %H:%M:%S\n").encode('ascii')
+            dt = datetime.datetime.utcnow()
+            text = dt.strftime("%m %b %H:%M:%S.%f\n").encode('ascii')
             await self._guarded_run(resp.write(text))
-            await self._guarded_run(asyncio.sleep(1))
+            ts = dt.timestamp()
+            sleep_time = max(0, 1 - datetime.datetime.utcnow().timestamp() + ts)
+            await self._guarded_run(asyncio.sleep(sleep_time))
         return resp
 
 
