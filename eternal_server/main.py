@@ -68,6 +68,11 @@ def exit_handler(exit_event, signum, frame):
         exit_event.set()
 
 
+async def heartbeat():
+    while True:
+        await asyncio.sleep(1)
+
+
 def main():
     args = parse_args()
     logger = setup_logger('MAIN', args.verbosity)
@@ -95,10 +100,12 @@ def main():
 
 
     exit_event = asyncio.Event(loop=loop)
-    sig_handler = partial(exit_handler, exit_future)
+    beat = asyncio.ensure_future(heartbeat(), loop=loop)
+    sig_handler = partial(exit_handler, exit_event)
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)
-    loop.run_until_complete(exit_future.wait())
+    loop.run_until_complete(exit_event.wait())
+    beat.cancel()
     logger.info("Eventloop interrupted. Shutting down server...")
     loop.run_until_complete(server.stop())
     loop.close()
