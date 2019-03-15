@@ -69,6 +69,11 @@ def exit_handler(fut, signum, frame):
         logger.warning("Got first exit signal! Terminating gracefully.")
 
 
+async def heartbeat():
+    while True:
+        await asyncio.sleep(1)
+
+
 def main():
     args = parse_args()
     logger = setup_logger('MAIN', args.verbosity)
@@ -96,10 +101,12 @@ def main():
 
 
     exit_future = loop.create_future()
+    beat = loop.create_task(heartbeat()) # workaround python evloop bug
     sig_handler = partial(exit_handler, exit_future)
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)
     loop.run_until_complete(exit_future)
+    beat.cancel()
     logger.info("Eventloop interrupted. Shutting down server...")
     loop.run_until_complete(server.stop())
     loop.close()
