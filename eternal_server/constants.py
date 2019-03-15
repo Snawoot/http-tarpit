@@ -7,11 +7,12 @@ ZEROES=bytearray(BUF_SIZE)
 NEWLINES=bytearray(0xA for _ in range(BUF_SIZE))
 
 
+@enum.unique
 class OperationMode(enum.Enum):
-    clock = enum.auto()
-    newline = enum.auto()
-    urandom = enum.auto()
-    null = enum.auto()
+    clock = 1
+    newline = 2
+    urandom = 3
+    null = 4
 
     def __str__(self):
         return self.name
