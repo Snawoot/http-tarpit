@@ -1,6 +1,7 @@
 import asyncio
 import datetime
 import logging
+import os
 
 from aiohttp import web
 from .constants import *
@@ -29,6 +30,9 @@ class EternalServer:
             await self._server.shutdown()
             await self._site.stop()
             await self._runner.cleanup()
+
+    async def run(self):
+        await self._shutdown
 
     async def _guarded_run(self, awaitable):
         task = asyncio.ensure_future(awaitable)
