@@ -58,20 +58,14 @@ def parse_args():
     return parser.parse_args()
 
 
-def exit_handler(fut, signum, frame):
+def exit_handler(exit_event, signum, frame):
     logger = logging.getLogger('MAIN')
-    try:
-        fut.set_result(None)
-    except asyncio.InvalidStateError:
+    if exit_event.is_set():
         logger.warning("Got second exit signal! Terminating hard.")
         os._exit(1)
     else:
         logger.warning("Got first exit signal! Terminating gracefully.")
-
-
-async def heartbeat():
-    while True:
-        await asyncio.sleep(1)
+        exit_event.set()
 
 
 def main():
@@ -100,13 +94,11 @@ def main():
     logger.info("Server startup completed.")
 
 
-    exit_future = loop.create_future()
-    beat = loop.create_task(heartbeat()) # workaround python evloop bug
+    exit_event = asyncio.Event(loop=loop)
     sig_handler = partial(exit_handler, exit_future)
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)
-    loop.run_until_complete(exit_future)
-    beat.cancel()
+    loop.run_until_complete(exit_future.wait())
     logger.info("Eventloop interrupted. Shutting down server...")
     loop.run_until_complete(server.stop())
     loop.close()
