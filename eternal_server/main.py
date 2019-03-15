@@ -100,7 +100,7 @@ def main():
     signal.signal(signal.SIGTERM, sig_handler)
     signal.signal(signal.SIGINT, sig_handler)
     loop.run_until_complete(exit_future)
-    logger.info("Got interrupt signal. Shutting down server...")
+    logger.info("Eventloop interrupted. Shutting down server...")
     loop.run_until_complete(server.stop())
     loop.close()
     logger.info("Server stopped.")
