@@ -7,8 +7,10 @@ import ssl
 import os
 import signal
 from functools import partial
+
 from .server import EternalServer
-from .constants import OperationMode
+from .constants import OperationMode, LogLevel
+from .utils import setup_logger, enable_uvloop
 
 
 def parse_args():
@@ -57,12 +59,14 @@ def parse_args():
 
 
 def exit_handler(fut, signum, frame):
+    logger = logging.getLogger('MAIN')
     try:
         fut.set_result(None)
     except asyncio.InvalidStateError:
-        logger = logging.getLogger('MAIN')
-        logger.warn("Got second exit signal! Terminating hard.")
+        logger.warning("Got second exit signal! Terminating hard.")
         os._exit(1)
+    else:
+        logger.warning("Got first exit signal! Terminating gracefully.")
 
 
 def main():
@@ -100,7 +104,3 @@ def main():
     loop.run_until_complete(server.stop())
     loop.close()
     logger.info("Server stopped.")
-
-
-if __name__ == '__main__':
-    main()
