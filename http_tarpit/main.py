@@ -70,7 +70,7 @@ def exit_handler(exit_event, signum, frame):
 
 async def heartbeat():
     while True:
-        await asyncio.sleep(1)
+        await asyncio.sleep(.5)
 
 
 def main():
