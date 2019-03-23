@@ -1,6 +1,6 @@
 PYTHON = python3
 RM = rm
-PKG_NAME = eternal_server
+PKG_NAME = http_tarpit
 
 PRJ_DIR = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 VENV ?= $(PRJ_DIR)venv

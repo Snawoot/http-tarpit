@@ -5,14 +5,14 @@ this_directory = path.abspath(path.dirname(__file__))
 with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
-setup(name='eternal_server',
+setup(name='http_tarpit',
       version='0.1.0',
       description="Web-server which produces infinite chunked-encoded responses",
-      url='https://github.com/Snawoot/eternal-server',
+      url='https://github.com/Snawoot/http-tarpit',
       author='Vladislav Yarmak',
       author_email='vladislav-ex-src@vm-0.com',
       license='MIT',
-      packages=['eternal_server'],
+      packages=['http_tarpit'],
       python_requires='>=3.5.3',
       setup_requires=[
           'wheel',
@@ -22,7 +22,7 @@ setup(name='eternal_server',
       ],
       entry_points={
           'console_scripts': [
-              'eternal-server=eternal_server.main:main',
+              'http-tarpit=http_tarpit.main:main',
           ],
       },
       classifiers=[
