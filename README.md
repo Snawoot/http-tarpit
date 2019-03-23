@@ -10,7 +10,11 @@ Web-server which produces infinite chunked-encoded responses
 
 ## Installation
 
-Standard Python package installation.
+Standard Python package installation. This package is available on PyPI:
+
+```
+pip3 install http-tarpit
+```
 
 ## Usage
 
