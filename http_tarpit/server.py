@@ -88,12 +88,25 @@ class EternalServer:
             await self._guarded_run(resp.write(os.urandom(BUF_SIZE)))
         return resp
 
+    async def handler_slow_newline(self, request):
+        resp = web.StreamResponse(headers={'Content-Type': 'text/plain'})
+        resp.enable_chunked_encoding()
+        await resp.prepare(request)
+        while not self._shutdown.done():
+            dt = datetime.datetime.utcnow()
+            await self._guarded_run(resp.write(b'\n'))
+            ts = dt.timestamp()
+            sleep_time = max(0, 1 - datetime.datetime.utcnow().timestamp() + ts)
+            await self._guarded_run(asyncio.sleep(sleep_time))
+        return resp
+
     async def setup(self):
         handler = {
             OperationMode.clock: self.handler_clock,
             OperationMode.null: self.handler_null,
             OperationMode.newline: self.handler_newline,
             OperationMode.urandom: self.handler_urandom,
+            OperationMode.slow_newline: self.handler_slow_newline,
         }[self._mode]
         self._server = web.Server(handler)
         self._runner = web.ServerRunner(self._server)

@@ -13,6 +13,7 @@ class OperationMode(enum.Enum):
     newline = 2
     urandom = 3
     null = 4
+    slow_newline = 5
 
     def __str__(self):
         return self.name

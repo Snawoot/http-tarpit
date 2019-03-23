@@ -17,10 +17,10 @@ Standard Python package installation.
 Synopsis:
 
 ```
-$ ./venv/bin/http-tarpit --help
+$ http-tarpit --help
 usage: http-tarpit [-h] [--disable-uvloop] [-v {debug,info,warn,error,fatal}]
-                   [-m {clock,newline,urandom,null}] [-a BIND_ADDRESS]
-                   [-p BIND_PORT] [-c CERT] [-k KEY]
+                   [-m {clock,newline,urandom,null,slow_newline}]
+                   [-a BIND_ADDRESS] [-p BIND_PORT] [-c CERT] [-k KEY]
 
 Web-server which produces infinite chunked-encoded responses
 
@@ -30,7 +30,7 @@ optional arguments:
                         False)
   -v {debug,info,warn,error,fatal}, --verbosity {debug,info,warn,error,fatal}
                         logging verbosity (default: info)
-  -m {clock,newline,urandom,null}, --mode {clock,newline,urandom,null}
+  -m {clock,newline,urandom,null,slow_newline}, --mode {clock,newline,urandom,null,slow_newline}
                         operation mode (default: clock)
 
 listen options:
@@ -42,6 +42,7 @@ listen options:
 TLS options:
   -c CERT, --cert CERT  enable TLS and use certificate (default: None)
   -k KEY, --key KEY     key for TLS certificate (default: None)
+
 ```
 
 ### Modes of operation
@@ -50,3 +51,4 @@ TLS options:
 * `newline` - feed client with newlines as fast as possible
 * `urandom` - feed client with random bytes as fast as possible
 * `null` - feed client with zero bytes as fast as possible
+* `slow_newline` - feed client with newline character every second
