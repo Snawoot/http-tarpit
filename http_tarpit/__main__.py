@@ -110,3 +110,7 @@ def main():
     loop.run_until_complete(server.stop())
     loop.close()
     logger.info("Server stopped.")
+
+
+if __name__ == '__main__':
+    main()

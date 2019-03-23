@@ -22,7 +22,7 @@ setup(name='http_tarpit',
       ],
       entry_points={
           'console_scripts': [
-              'http-tarpit=http_tarpit.main:main',
+              'http-tarpit=http_tarpit.__main__:main',
           ],
       },
       classifiers=[
