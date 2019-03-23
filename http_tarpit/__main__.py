@@ -73,6 +73,27 @@ async def heartbeat():
         await asyncio.sleep(.5)
 
 
+async def amain(args, context, loop):
+    logger = logging.getLogger('MAIN')
+    server = EternalServer(address=args.bind_address,
+                           port=args.bind_port,
+                           ssl_context=context,
+                           mode=args.mode,
+                           loop=loop)
+    await server.setup()
+    logger.info("Server startup completed.")
+
+    exit_event = asyncio.Event(loop=loop)
+    beat = asyncio.ensure_future(heartbeat(), loop=loop)
+    sig_handler = partial(exit_handler, exit_event)
+    signal.signal(signal.SIGTERM, sig_handler)
+    signal.signal(signal.SIGINT, sig_handler)
+    await exit_event.wait()
+    beat.cancel()
+    logger.debug("Eventloop interrupted. Shutting down server...")
+    await server.stop()
+
+
 def main():
     args = parse_args()
     logger = setup_logger('MAIN', args.verbosity)
@@ -90,24 +111,7 @@ def main():
 
     logger.debug("Starting server...")
     loop = asyncio.get_event_loop()
-    server = EternalServer(address=args.bind_address,
-                           port=args.bind_port,
-                           ssl_context=context,
-                           mode=args.mode,
-                           loop=loop)
-    loop.run_until_complete(server.setup())
-    logger.info("Server startup completed.")
-
-
-    exit_event = asyncio.Event(loop=loop)
-    beat = asyncio.ensure_future(heartbeat(), loop=loop)
-    sig_handler = partial(exit_handler, exit_event)
-    signal.signal(signal.SIGTERM, sig_handler)
-    signal.signal(signal.SIGINT, sig_handler)
-    loop.run_until_complete(exit_event.wait())
-    beat.cancel()
-    logger.info("Eventloop interrupted. Shutting down server...")
-    loop.run_until_complete(server.stop())
+    loop.run_until_complete(amain(args, context, loop))
     loop.close()
     logger.info("Server stopped.")
 
