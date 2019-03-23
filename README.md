@@ -3,6 +3,11 @@ http-tarpit
 
 Web-server which produces infinite chunked-encoded responses
 
+## Requirements
+
+* Python 3.5.3+
+* aiohttp 3.4.4+
+
 ## Installation
 
 Standard Python package installation.
