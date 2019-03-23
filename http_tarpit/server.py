@@ -20,6 +20,13 @@ class EternalServer:
         self._mode = mode
         self._int_fut = self._loop.create_future()
         self._shutdown = asyncio.ensure_future(self._int_fut, loop=self._loop)
+        self._handler = {
+            OperationMode.clock: self.handler_clock,
+            OperationMode.null: self.handler_null,
+            OperationMode.newline: self.handler_newline,
+            OperationMode.urandom: self.handler_urandom,
+            OperationMode.slow_newline: self.handler_slow_newline,
+        }[self._mode]
 
     async def stop(self):
         try:
@@ -47,6 +54,14 @@ class EternalServer:
             return None
         else:
             return task.result()
+
+    async def common_handler(self, request):
+        peer_addr = request.transport.get_extra_info('peername')
+        self._logger.info("Client %s connected.", str(peer_addr))
+        try:
+            return await self._handler(request)
+        finally:
+            self._logger.info("Client %s disconnected.", str(peer_addr))
 
     async def handler_clock(self, request):
         resp = web.StreamResponse(headers={'Content-Type': 'text/plain'})
@@ -101,14 +116,7 @@ class EternalServer:
         return resp
 
     async def setup(self):
-        handler = {
-            OperationMode.clock: self.handler_clock,
-            OperationMode.null: self.handler_null,
-            OperationMode.newline: self.handler_newline,
-            OperationMode.urandom: self.handler_urandom,
-            OperationMode.slow_newline: self.handler_slow_newline,
-        }[self._mode]
-        self._server = web.Server(handler)
+        self._server = web.Server(self.common_handler)
         self._runner = web.ServerRunner(self._server)
         await self._runner.setup()
         self._site = web.TCPSite(self._runner, self._address, self._port,
