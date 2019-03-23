@@ -22,6 +22,13 @@ def parse_args():
                 "%s is not a valid port number" % value)
         return ivalue
 
+    def check_positive_int(value):
+        ivalue = int(value)
+        if ivalue <= 0:
+            raise argparse.ArgumentTypeError(
+                "%s is not valid positive integer value" % value)
+        return ivalue
+
     parser = argparse.ArgumentParser(
         description="Web-server which produces infinite chunked-encoded "
         "responses",
@@ -40,6 +47,10 @@ def parse_args():
                         type=OperationMode.__getitem__,
                         choices=list(OperationMode),
                         default=OperationMode.clock)
+    parser.add_argument("-b", "--buffer-size",
+                        default=128*2**10,
+                        type=check_positive_int,
+                        help="send buffer size")
 
     listen_group = parser.add_argument_group('listen options')
     listen_group.add_argument("-a", "--bind-address",
@@ -79,6 +90,7 @@ async def amain(args, context, loop):
                            port=args.bind_port,
                            ssl_context=context,
                            mode=args.mode,
+                           buffer_size=args.buffer_size,
                            loop=loop)
     await server.setup()
     logger.info("Server startup completed.")

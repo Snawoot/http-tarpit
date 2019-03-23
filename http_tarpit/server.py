@@ -11,7 +11,7 @@ class EternalServer:
     SHUTDOWN_TIMEOUT = 5
 
     def __init__(self, *, address=None, port=8080, ssl_context=None,
-                 mode=OperationMode.clock, loop=None):
+                 mode=OperationMode.clock, buffer_size=128*2**10, loop=None):
         self._loop = loop if loop is not None else asyncio.get_event_loop()
         self._logger = logging.getLogger(self.__class__.__name__)
         self._address = address
@@ -27,6 +27,8 @@ class EternalServer:
             OperationMode.urandom: self.handler_urandom,
             OperationMode.slow_newline: self.handler_slow_newline,
         }[self._mode]
+        self.ZEROES=bytearray(buffer_size)
+        self.NEWLINES=bytearray(0xA for _ in range(buffer_size))
 
     async def stop(self):
         try:
@@ -82,7 +84,7 @@ class EternalServer:
         resp.enable_chunked_encoding()
         await resp.prepare(request)
         while not self._shutdown.done():
-            await self._guarded_run(resp.write(ZEROES))
+            await self._guarded_run(resp.write(self.ZEROES))
         return resp
 
     async def handler_newline(self, request):
@@ -91,7 +93,7 @@ class EternalServer:
         resp.enable_chunked_encoding()
         await resp.prepare(request)
         while not self._shutdown.done():
-            await self._guarded_run(resp.write(ZEROES))
+            await self._guarded_run(resp.write(self.NEWLINES))
         return resp
 
     async def handler_urandom(self, request):

@@ -2,11 +2,6 @@ import enum
 import logging
 
 
-BUF_SIZE=131072
-ZEROES=bytearray(BUF_SIZE)
-NEWLINES=bytearray(0xA for _ in range(BUF_SIZE))
-
-
 @enum.unique
 class OperationMode(enum.Enum):
     clock = 1
