@@ -29,6 +29,7 @@ class EternalServer:
         }[self._mode]
         self.ZEROES=bytearray(buffer_size)
         self.NEWLINES=bytearray(0xA for _ in range(buffer_size))
+        self._buffer_size = buffer_size
 
     async def stop(self):
         try:
@@ -102,7 +103,7 @@ class EternalServer:
         resp.enable_chunked_encoding()
         await resp.prepare(request)
         while not self._shutdown.done():
-            await self._guarded_run(resp.write(os.urandom(BUF_SIZE)))
+            await self._guarded_run(resp.write(os.urandom(self._buffer_size)))
         return resp
 
     async def handler_slow_newline(self, request):
