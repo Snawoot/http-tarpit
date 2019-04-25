@@ -16,6 +16,37 @@ Standard Python package installation. This package is available on PyPI:
 pip3 install http-tarpit
 ```
 
+### Docker
+
+Run following command to pull image and print options help:
+
+```bash
+docker run -it yarmak/http-tarpit --help
+```
+
+Use following command with required options to run daemon in background (example):
+
+```bash
+docker run -dit \
+    -p 8080:8080 \
+    --restart unless-stopped \
+    --name http-tarpit \
+    yarmak/http-tarpit -m null
+```
+
+TLS example:
+
+```bash
+docker run -dit \
+    -p 8443:8080 \
+    -v /etc/letsencrypt:/srv/certs:ro \
+    --restart unless-stopped \
+    --name http-tarpit \
+    yarmak/http-tarpit \
+    -c /srv/certs/live/example.com/fullchain.pem \
+    -k /srv/certs/live/example.com/privkey.pem
+```
+
 ## Usage
 
 Synopsis:
