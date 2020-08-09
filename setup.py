@@ -6,7 +6,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
     long_description = f.read()
 
 setup(name='http_tarpit',
-      version='0.1.1',
+      version='0.1.2',
       description="Web-server which produces infinite chunked-encoded responses",
       url='https://github.com/Snawoot/http-tarpit',
       author='Vladislav Yarmak',
